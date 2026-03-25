@@ -17,15 +17,13 @@ const PHRASES_TO_TRACK = [
     'Orange',
     'https://discord.com/',
 ];
-const START_DATE = process.argv[2] || new Date().toISOString().split('T')[0];
-const END_DATE = process.argv[3] || new Date().toISOString().split('T')[0];
-async function trackPhrases() {
+async function trackPhrases(startDate, endDate) {
     console.log('trackPhrases called...');
-    console.log(`Scanning from ${START_DATE} to ${END_DATE}`);
+    console.log(`Scanning from ${startDate} to ${endDate}`);
     try {
         const results = {};
-        const startTimestamp = new Date(START_DATE).getTime();
-        const endTimestamp = new Date(END_DATE + 'T23:59:59').getTime();
+        const startTimestamp = new Date(startDate).getTime();
+        const endTimestamp = new Date(endDate + 'T23:59:59').getTime();
         let page = 1;
         let allConversations = [];
         console.log('Fetching all conversations...');
@@ -47,8 +45,8 @@ async function trackPhrases() {
                 const messageDate = new Date(message.timestamp ?? Date.now()).toISOString().split('T')[0];
                 if (message.from === 'operator' &&
                     typeof message.content === 'string' &&
-                    messageDate >= START_DATE &&
-                    messageDate <= END_DATE) {
+                    messageDate >= startDate &&
+                    messageDate <= endDate) {
                     for (const phrase of PHRASES_TO_TRACK) {
                         if (message.content.toLowerCase().includes(phrase.toLowerCase())) {
                             if (!results[phrase]) {
@@ -66,7 +64,7 @@ async function trackPhrases() {
                 }
             }
         }
-        const logPath = path_1.default.join('logs', `${START_DATE}_to_${END_DATE}.json`);
+        const logPath = path_1.default.join('logs', `${startDate}_to_${endDate}.json`);
         fs_1.default.writeFileSync(logPath, JSON.stringify(results, null, 2));
         console.log('Tracking complete. Results saved to', logPath);
     }

@@ -21,17 +21,14 @@ const PHRASES_TO_TRACK = [
   'https://discord.com/',
 ];
 
-const START_DATE = process.argv[2] || new Date().toISOString().split('T')[0];
-const END_DATE = process.argv[3] || new Date().toISOString().split('T')[0];
-
-export async function trackPhrases(): Promise<void> {
+export async function trackPhrases(startDate: string, endDate: string): Promise<void> {
   console.log('trackPhrases called...');
-  console.log(`Scanning from ${START_DATE} to ${END_DATE}`);
+  console.log(`Scanning from ${startDate} to ${endDate}`);
 
   try {
     const results: Record<string, { count: number; mentions: { date: string; operator: string }[] }> = {};
-    const startTimestamp = new Date(START_DATE).getTime();
-    const endTimestamp = new Date(END_DATE + 'T23:59:59').getTime();
+    const startTimestamp = new Date(startDate).getTime();
+    const endTimestamp = new Date(endDate + 'T23:59:59').getTime();
 
     let page = 1;
     let allConversations: any[] = [];
@@ -43,9 +40,9 @@ export async function trackPhrases(): Promise<void> {
 
       if (!conversations || conversations.length === 0) break;
 
-	const rangeConvos = conversations.filter(
-	  (c: any) => c.updated_at >= startTimestamp && c.updated_at <= endTimestamp
-	);
+      const rangeConvos = conversations.filter(
+        (c: any) => c.updated_at >= startTimestamp && c.updated_at <= endTimestamp
+      );
 
       allConversations = [...allConversations, ...rangeConvos];
 
@@ -69,8 +66,8 @@ export async function trackPhrases(): Promise<void> {
         if (
           message.from === 'operator' &&
           typeof message.content === 'string' &&
-          messageDate >= START_DATE &&
-          messageDate <= END_DATE
+          messageDate >= startDate &&
+          messageDate <= endDate
         ) {
           for (const phrase of PHRASES_TO_TRACK) {
             if (message.content.toLowerCase().includes(phrase.toLowerCase())) {
@@ -93,7 +90,7 @@ export async function trackPhrases(): Promise<void> {
       }
     }
 
-    const logPath = path.join('logs', `${START_DATE}_to_${END_DATE}.json`);
+    const logPath = path.join('logs', `${startDate}_to_${endDate}.json`);
     fs.writeFileSync(logPath, JSON.stringify(results, null, 2));
     console.log('Tracking complete. Results saved to', logPath);
 

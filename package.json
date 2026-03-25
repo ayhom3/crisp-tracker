@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "crisp-api": "^10.9.1",
-    "dotenv": "^17.3.1",
-    "node-cron": "^4.2.1"
+    "dotenv": "^17.3.1"
   }
 }
