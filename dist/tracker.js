@@ -17,12 +17,15 @@ const PHRASES_TO_TRACK = [
     'Orange',
     'https://discord.com/',
 ];
+const START_DATE = process.argv[2] || new Date().toISOString().split('T')[0];
+const END_DATE = process.argv[3] || new Date().toISOString().split('T')[0];
 async function trackPhrases() {
     console.log('trackPhrases called...');
+    console.log(`Scanning from ${START_DATE} to ${END_DATE}`);
     try {
         const results = {};
-        const today = new Date().toISOString().split('T')[0];
-        const startOfDay = new Date(today).getTime();
+        const startTimestamp = new Date(START_DATE).getTime();
+        const endTimestamp = new Date(END_DATE + 'T23:59:59').getTime();
         let page = 1;
         let allConversations = [];
         console.log('Fetching all conversations...');
@@ -30,18 +33,22 @@ async function trackPhrases() {
             const conversations = await client.website.listConversations(WEBSITE_ID, page);
             if (!conversations || conversations.length === 0)
                 break;
-            const todayConvos = conversations.filter((c) => c.updated_at >= startOfDay);
-            allConversations = [...allConversations, ...todayConvos];
-            if (todayConvos.length === 0)
+            const rangeConvos = conversations.filter((c) => c.updated_at >= startTimestamp && c.updated_at <= endTimestamp);
+            allConversations = [...allConversations, ...rangeConvos];
+            if (rangeConvos.length === 0)
                 break;
-            console.log(`Fetched page ${page}, ${todayConvos.length} conversations from today`);
+            console.log(`Fetched page ${page}, ${rangeConvos.length} conversations in range`);
             page++;
         }
         console.log(`Total conversations to scan: ${allConversations.length}`);
         for (const convo of allConversations) {
             const messages = await client.website.getMessagesInConversation(WEBSITE_ID, convo.session_id);
             for (const message of messages) {
-                if (message.from === 'operator' && typeof message.content === 'string') {
+                const messageDate = new Date(message.timestamp ?? Date.now()).toISOString().split('T')[0];
+                if (message.from === 'operator' &&
+                    typeof message.content === 'string' &&
+                    messageDate >= START_DATE &&
+                    messageDate <= END_DATE) {
                     for (const phrase of PHRASES_TO_TRACK) {
                         if (message.content.toLowerCase().includes(phrase.toLowerCase())) {
                             if (!results[phrase]) {
@@ -59,7 +66,7 @@ async function trackPhrases() {
                 }
             }
         }
-        const logPath = path_1.default.join('logs', `${today}.json`);
+        const logPath = path_1.default.join('logs', `${START_DATE}_to_${END_DATE}.json`);
         fs_1.default.writeFileSync(logPath, JSON.stringify(results, null, 2));
         console.log('Tracking complete. Results saved to', logPath);
     }

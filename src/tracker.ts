@@ -21,13 +21,17 @@ const PHRASES_TO_TRACK = [
   'https://discord.com/',
 ];
 
+const START_DATE = process.argv[2] || new Date().toISOString().split('T')[0];
+const END_DATE = process.argv[3] || new Date().toISOString().split('T')[0];
+
 export async function trackPhrases(): Promise<void> {
   console.log('trackPhrases called...');
+  console.log(`Scanning from ${START_DATE} to ${END_DATE}`);
 
   try {
     const results: Record<string, { count: number; mentions: { date: string; operator: string }[] }> = {};
-    const today = new Date().toISOString().split('T')[0];
-    const startOfDay = new Date(today).getTime();
+    const startTimestamp = new Date(START_DATE).getTime();
+    const endTimestamp = new Date(END_DATE + 'T23:59:59').getTime();
 
     let page = 1;
     let allConversations: any[] = [];
@@ -39,15 +43,15 @@ export async function trackPhrases(): Promise<void> {
 
       if (!conversations || conversations.length === 0) break;
 
-      const todayConvos = conversations.filter(
-        (c: any) => c.updated_at >= startOfDay
-      );
+	const rangeConvos = conversations.filter(
+	  (c: any) => c.updated_at >= startTimestamp && c.updated_at <= endTimestamp
+	);
 
-      allConversations = [...allConversations, ...todayConvos];
+      allConversations = [...allConversations, ...rangeConvos];
 
-      if (todayConvos.length === 0) break;
+      if (rangeConvos.length === 0) break;
 
-      console.log(`Fetched page ${page}, ${todayConvos.length} conversations from today`);
+      console.log(`Fetched page ${page}, ${rangeConvos.length} conversations in range`);
       page++;
     }
 
@@ -60,7 +64,14 @@ export async function trackPhrases(): Promise<void> {
       );
 
       for (const message of messages) {
-        if (message.from === 'operator' && typeof message.content === 'string') {
+        const messageDate = new Date(message.timestamp ?? Date.now()).toISOString().split('T')[0];
+
+        if (
+          message.from === 'operator' &&
+          typeof message.content === 'string' &&
+          messageDate >= START_DATE &&
+          messageDate <= END_DATE
+        ) {
           for (const phrase of PHRASES_TO_TRACK) {
             if (message.content.toLowerCase().includes(phrase.toLowerCase())) {
               if (!results[phrase]) {
@@ -68,13 +79,13 @@ export async function trackPhrases(): Promise<void> {
               }
 
               results[phrase].count += 1;
-		const date = new Date(message.timestamp ?? Date.now());
-		const formatted = date.toLocaleDateString('en-GB') + ', ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-		results[phrase].mentions.push({
 
+              const date = new Date(message.timestamp ?? Date.now());
+              const formatted = date.toLocaleDateString('en-GB') + ', ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+              results[phrase].mentions.push({
                 date: formatted,
-		operator: message.user?.nickname || message.user?.user_id || 'Unknown'
-
+                operator: message.user?.nickname || message.user?.user_id || 'Unknown'
               });
             }
           }
@@ -82,7 +93,7 @@ export async function trackPhrases(): Promise<void> {
       }
     }
 
-    const logPath = path.join('logs', `${today}.json`);
+    const logPath = path.join('logs', `${START_DATE}_to_${END_DATE}.json`);
     fs.writeFileSync(logPath, JSON.stringify(results, null, 2));
     console.log('Tracking complete. Results saved to', logPath);
 

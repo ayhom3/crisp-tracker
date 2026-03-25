@@ -9,11 +9,14 @@ const tracker_1 = require("./tracker");
 const report_1 = require("./report");
 dotenv_1.default.config();
 console.log('Crisp Tracker started...');
+const START_DATE = process.argv[2] || new Date().toISOString().split('T')[0];
+const END_DATE = process.argv[3] || new Date().toISOString().split('T')[0];
 // Manual test run
-(0, tracker_1.trackPhrases)().then(() => (0, report_1.generateReport)());
+(0, tracker_1.trackPhrases)().then(() => (0, report_1.generateReport)(START_DATE, END_DATE));
 // Run every day at midnight
 node_cron_1.default.schedule('0 0 * * *', async () => {
+    const today = new Date().toISOString().split('T')[0];
     console.log('Running daily tracker...');
     await (0, tracker_1.trackPhrases)();
-    await (0, report_1.generateReport)();
+    await (0, report_1.generateReport)(today, today);
 });
