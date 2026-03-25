@@ -1,0 +1,33 @@
+{
+  "name": "crisp-tracker",
+  "version": "1.0.0",
+  "description": "A lightweight Node.js + TypeScript backend tool that connects to the Crisp API to track specific phrases and hyperlinks sent by operators in customer conversations.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayhom3/crisp-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ayhom3/crisp-tracker/issues"
+  },
+  "homepage": "https://github.com/ayhom3/crisp-tracker#readme",
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "crisp-api": "^10.9.1",
+    "dotenv": "^17.3.1",
+    "node-cron": "^4.2.1"
+  }
+}
