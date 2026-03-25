@@ -16,10 +16,9 @@ client.authenticateTier(
 const WEBSITE_ID = process.env.CRISP_WEBSITE_ID!;
 
 const PHRASES_TO_TRACK = [
-  'Chess',
-  'control',
-  'refund',
-  'https://a-alhomsi.com',
+  'Operator1',
+  'Operator2',
+  'zz',
 ];
 
 export async function trackPhrases(): Promise<void> {
