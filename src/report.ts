@@ -11,14 +11,17 @@ export async function generateReport(): Promise<void> {
   }
 
   const raw = fs.readFileSync(logPath, 'utf-8');
-  const results: Record<string, number> = JSON.parse(raw);
+  const results = JSON.parse(raw);
 
   console.log('\nDaily Report -', date);
   console.log('-----------------------------');
 
-  for (const [phrase, count] of Object.entries(results)) {
-    console.log(`"${phrase}" -> sent ${count} time(s)`);
+  for (const [phrase, data] of Object.entries(results) as any) {
+    console.log(`\n"${phrase}" mentioned ${data.count} time(s)`);
+    for (const mention of data.mentions) {
+      console.log(`  ${mention.date} - ${mention.operator}`);
+    }
   }
 
-  console.log('-----------------------------\n');
+  console.log('\n-----------------------------\n');
 }

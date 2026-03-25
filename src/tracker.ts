@@ -16,21 +16,44 @@ client.authenticateTier(
 const WEBSITE_ID = process.env.CRISP_WEBSITE_ID!;
 
 const PHRASES_TO_TRACK = [
-  'Operator1',
-  'Operator2',
-  'zz',
+  'Apple',
+  'Orange',
+  'https://discord.com/',
 ];
 
 export async function trackPhrases(): Promise<void> {
-  console.log('Scanning conversations...');
+  console.log('trackPhrases called...');
 
   try {
-    const results: Record<string, number> = {};
+    const results: Record<string, { count: number; mentions: { date: string; operator: string }[] }> = {};
+    const today = new Date().toISOString().split('T')[0];
+    const startOfDay = new Date(today).getTime();
 
-    const conversations = await client.website.listConversations(WEBSITE_ID, 1);
-console.log('Conversations fetched:', JSON.stringify(conversations));
+    let page = 1;
+    let allConversations: any[] = [];
 
-	for (const convo of conversations) {
+    console.log('Fetching all conversations...');
+
+    while (true) {
+      const conversations = await client.website.listConversations(WEBSITE_ID, page);
+
+      if (!conversations || conversations.length === 0) break;
+
+      const todayConvos = conversations.filter(
+        (c: any) => c.updated_at >= startOfDay
+      );
+
+      allConversations = [...allConversations, ...todayConvos];
+
+      if (todayConvos.length === 0) break;
+
+      console.log(`Fetched page ${page}, ${todayConvos.length} conversations from today`);
+      page++;
+    }
+
+    console.log(`Total conversations to scan: ${allConversations.length}`);
+
+    for (const convo of allConversations) {
       const messages = await client.website.getMessagesInConversation(
         WEBSITE_ID,
         convo.session_id
@@ -40,15 +63,26 @@ console.log('Conversations fetched:', JSON.stringify(conversations));
         if (message.from === 'operator' && typeof message.content === 'string') {
           for (const phrase of PHRASES_TO_TRACK) {
             if (message.content.toLowerCase().includes(phrase.toLowerCase())) {
-              results[phrase] = (results[phrase] || 0) + 1;
+              if (!results[phrase]) {
+                results[phrase] = { count: 0, mentions: [] };
+              }
+
+              results[phrase].count += 1;
+		const date = new Date(message.timestamp ?? Date.now());
+		const formatted = date.toLocaleDateString('en-GB') + ', ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+		results[phrase].mentions.push({
+
+                date: formatted,
+		operator: message.user?.nickname || message.user?.user_id || 'Unknown'
+
+              });
             }
           }
         }
       }
     }
 
-    const date = new Date().toISOString().split('T')[0];
-    const logPath = path.join('logs', `${date}.json`);
+    const logPath = path.join('logs', `${today}.json`);
     fs.writeFileSync(logPath, JSON.stringify(results, null, 2));
     console.log('Tracking complete. Results saved to', logPath);
 
